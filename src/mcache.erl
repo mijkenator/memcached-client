@@ -15,7 +15,7 @@ start() ->
 get(Class, Key) ->
     Get = fun() ->
             {Pool, _Expiry} = mcache_expires:expire(Class),
-            io:format("~p~n", [{Pool, _Expiry}]),
+            %io:format("~p~n", [{Pool, _Expiry}]),
             {mc_async, 0, {ok, Value}} = memcached_drv:get(Pool, 0, mcache_util:map_key(Class, Key)),
             mcache_util:decode_value(Value)
     end,
@@ -38,8 +38,8 @@ mget(Class, [_|_]=Keys) ->
 
 set(Class, Key, Value, Format, Expiry) ->
     {Pool, DefaultExpiry} = mcache_expires:expire(Class),
-	{Value1, Flags} = mcache_util:encode_value(Value, Format),
-	Expiry1 = mcache_util:encode_expiry(Expiry, DefaultExpiry),
+    {Value1, Flags} = mcache_util:encode_value(Value, Format),
+    Expiry1 = mcache_util:encode_expiry(Expiry, DefaultExpiry),
     memcached_drv:set(Pool, 0, set, mcache_util:map_key(Class, Key), Value1, Flags, Expiry1),
     ok.
 

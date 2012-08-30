@@ -8,17 +8,11 @@
 -export([gb_trees_find/4]).
 -export([map_key/2, encode_value/2, decode_value/1, encode_expiry/2]).
 
-now() ->
-	{MegaS, S, _MicroS} = erlang:now(),
-	MegaS*1000000 + S.
+now() -> {MegaS, S, _} = erlang:now(), MegaS*1000000 + S.
 
-hash(Key, crc) ->
-    erlang:crc32(Key);
-hash(Key, erlang) ->
-    erlang:phash2(Key);
-hash(Key, md5) ->
-    <<Int:32/unsigned-little-integer,  _:12/binary>> = erlang:md5(Key),
-    Int.
+hash(Key, crc)    -> erlang:crc32(Key);
+hash(Key, erlang) -> erlang:phash2(Key);
+hash(Key, md5)    -> <<Int:32/unsigned-little-integer,  _:12/binary>> = erlang:md5(Key), Int.
 
 
 floor(X) ->
@@ -178,21 +172,13 @@ decode_value({Data, ?FMT_NATIVE}) ->
 decode_value({<<Int:32>>, ?FMT_INT}) ->
     Int.
 
-encode_expiry(default, DefaultExpiry) ->
-    encode_expiry1(DefaultExpiry);
-encode_expiry(Expiry, _DefaultExpiry) ->
-    encode_expiry1(Expiry).
+encode_expiry(default, DefaultExpiry) -> encode_expiry1(DefaultExpiry);
+encode_expiry(Expiry, _)              -> encode_expiry1(Expiry).
 
-encode_expiry1(infinity) ->
-    0;
-encode_expiry1({X, seconds}) ->
-    X;
-encode_expiry1({X, minutes}) ->
-    X*60;
-encode_expiry1({X, hours}) ->
-    X*3600;
-encode_expiry1({X, days}) when X<30->
-    X*86400;
-encode_expiry1(X) when is_integer(X) ->
-    X.
+encode_expiry1(infinity)            -> 0;
+encode_expiry1({X, seconds})        -> X;
+encode_expiry1({X, minutes})        -> X*60;
+encode_expiry1({X, hours})          ->  X*3600;
+encode_expiry1({X, days}) when X<30 -> X*86400;
+encode_expiry1(X) when is_integer(X)-> X.
 

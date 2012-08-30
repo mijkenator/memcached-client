@@ -7,7 +7,7 @@
 -export([start_link/1]).
 -export([init/1,handle_call/3,handle_cast/2,handle_info/2,terminate/2,code_change/3]).
 
--export([update_expires/1,get_expires/0]).
+-export([update_expires/1,get_expires/0,normalize_server/1,normalize_addr/1]).
 
 -define(DEFAULT_EXPIRE_SECONDS, 300).		%5 minutes
 -define(DEFAULT_POOL, generic).
@@ -21,7 +21,7 @@
 start_link(Opts) ->
     	gen_server:start_link({local, ?MODULE}, ?MODULE, Opts, []).
 
-init({Pools, Expires}=Opts) ->
+init({_Pools, Expires}=_Opts) ->
 	io:format("[~s] init~n", [?MODULE]),
 	process_flag(trap_exit, true),
 	
@@ -32,29 +32,20 @@ init({Pools, Expires}=Opts) ->
 
 handle_call({update_expires, Info}, _From, #state{expires=OldExpires, initial_expires=InitialExpires}=State) ->
 	NewExpires = case Info of
-					restore ->		
-						% restore to initial config
-						InitialExpires;
-					{assign, Expires} -> 
-						% set a new set of config
-						Expires;
-					{delete, Class} ->
-						proplists:delete(Class, OldExpires);
-					{set, Class, {PoolName, Expiry}} -> 
-						Expires1 = proplists:delete(Class, OldExpires),
-						[{Class, {PoolName, Expiry}}|Expires1];
-					_ ->
-						not_modified
-				end,
-	if NewExpires =:= not_modified ->
-		{reply, ok, State};
+                restore             -> InitialExpires;% restore to initial config
+                {assign, Expires}   -> Expires;% set a new set of config
+                {delete, Class}     -> proplists:delete(Class, OldExpires);
+                {set, Class, {PoolName, Expiry}} -> 
+                                       Expires1 = proplists:delete(Class, OldExpires),
+                                       [{Class, {PoolName, Expiry}}|Expires1];
+                _                   -> not_modified
+        end,
+	if NewExpires =:= not_modified -> {reply, ok, State};
 	true ->
-		case (catch parse_expires(NewExpires)) of
-			{'EXIT', Reason} ->
-				{reply, {error, Reason}, State};
-			_ ->
-				{reply, ok, #state{expires=NewExpires}}
-		end
+            case (catch parse_expires(NewExpires)) of
+                    {'EXIT', Reason} -> {reply, {error, Reason}, State};
+                    _ -> {reply, ok, #state{expires=NewExpires}}
+            end
 	end;
 
 handle_call(get_expires, _From, #state{expires=Expires}=State) ->

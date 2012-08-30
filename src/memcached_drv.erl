@@ -120,7 +120,7 @@ get_all_driver_ports(Pool) ->
 get_driver_port(Pool) ->
     %{_,_,X} = erlang:now(),
 	%PortIndex = (X  rem ?PORT_COUNT) + 1,
-	PortIndex = (erlang:system_info(scheduler_id) rem ?PORT_COUNT)+1,
+    PortIndex = (erlang:system_info(scheduler_id) rem ?PORT_COUNT)+1,
     [{_, Port} | _] = ets:lookup(?DRV_TABLE, {?DRV_TAG, Pool, PortIndex}),
     Port.
 
