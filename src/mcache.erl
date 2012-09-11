@@ -5,7 +5,7 @@
 -module(mcache).
 -author('echou327@gmail.com').
 
--export([start/0, get/2, get_raw/2, mget/2, set/5, delete/2]).
+-export([start/0, get/2, get_raw/2, mget/2, set/5, set/6, delete/2]).
 		
 -define(DICT, dict).
 
@@ -42,6 +42,12 @@ set(Class, Key, Value, Format, Expiry) ->
     Expiry1 = mcache_util:encode_expiry(Expiry, DefaultExpiry),
     memcached_drv:set(Pool, 0, set, mcache_util:map_key(Class, Key), Value1, Flags, Expiry1),
     ok.
+
+set(Class, Key, Value, Format, Expiry, set) -> set(Class, Key, Value, Format, Expiry);
+set(Class, Key, Value, Format, Expiry, Operation) when Operation=:=add;Operation=:=replace->
+    {Pool, DefaultExpiry} = mcache_expires:expire(Class),
+    {Value1, Flags} = mcache_util:encode_value(Value, Format),
+    memcached_drv:set(Pool, 0, Operation, mcache_util:map_key(Class, Key), Value1, Flags, mcache_util:encode_expiry(Expiry, DefaultExpiry)).
 
 delete(Class, Key) ->
     {Pool, _} = mcache_expires:expire(Class),

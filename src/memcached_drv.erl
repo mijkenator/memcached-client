@@ -120,7 +120,7 @@ get_all_driver_ports(Pool) ->
 get_driver_port(Pool) ->
     %{_,_,X} = erlang:now(),
 	%PortIndex = (X  rem ?PORT_COUNT) + 1,
-    PortIndex = (erlang:system_info(scheduler_id) rem ?PORT_COUNT)+1,
+	PortIndex = (erlang:system_info(scheduler_id) rem ?PORT_COUNT)+1,
     [{_, Port} | _] = ets:lookup(?DRV_TABLE, {?DRV_TAG, Pool, PortIndex}),
     Port.
 
@@ -199,13 +199,12 @@ set(Pool, Seq, Op, Key, Value, Flags, Expires) ->
     V = to_binary(Value),
     KLen = byte_size(K),
     VLen = byte_size(V),
-    Op1 = case Op of
-            set -> $s;
-            add -> $a;
-            replace -> $r;
-            _ -> $s
-        end,
-    erlang:port_command(Port, [<<?CMD_SET_NOREPLY, Seq:32, Op1:8, KLen:32, VLen:32, Flags:32, Expires:32>>, K, V]).
+    case Op of
+        add     -> erlang:port_command(Port, [<<?CMD_SET, Seq:32, $a, KLen:32, VLen:32, Flags:32, Expires:32>>, K, V]),do_receive(?RECV_TIMEOUT);
+        replace -> erlang:port_command(Port, [<<?CMD_SET, Seq:32, $r, KLen:32, VLen:32, Flags:32, Expires:32>>, K, V]),do_receive(?RECV_TIMEOUT);
+        set     -> erlang:port_command(Port, [<<?CMD_SET_NOREPLY, Seq:32, $s, KLen:32, VLen:32, Flags:32, Expires:32>>, K, V]);
+        _       -> erlang:port_command(Port, [<<?CMD_SET_NOREPLY, Seq:32, $s, KLen:32, VLen:32, Flags:32, Expires:32>>, K, V])
+    end.
 
 delete(Pool, Seq, Key) ->
     Port = get_driver_port(Pool),
